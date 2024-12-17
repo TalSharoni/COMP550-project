@@ -151,7 +151,7 @@ def classify(data, diff_threshold=4):
             if word in neg_seed_words:
                 neg_count += 1
 
-        if pos_count - neg_count > diff_threshold:
+        if pos_count - neg_count > 1:
             y[i] = 1
             num_pos += 1
         elif neg_count - pos_count > diff_threshold:
@@ -207,7 +207,7 @@ def boot_train(data, unlabelled_data, conf_thresh=0.9, max_depth=5):
     return data, unlabelled_data, conf_thresh
 
 
-def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
+def bootstrap(data, initial_seed_size=1000, chunksize=2000, conf_thresh=0.9):
     accuracies = []
     seed_data = data.iloc[:initial_seed_size].copy()
     unlabelled_data = data.iloc[initial_seed_size:].copy()
@@ -217,7 +217,7 @@ def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
     train(seed_data)
 
     iteration = 0
-    while len(unlabelled_data) > 0 and conf_thresh >= 0.6:
+    while len(unlabelled_data) > 0 and conf_thresh >= 0.65:
         iteration += 1
         print(f"\nBootstrapping Iteration {iteration}...")
         print(f"Current Confidence Threshold: {conf_thresh:.2f}")
@@ -243,8 +243,6 @@ def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
         accuracies.append((accuracy_seed, accuracy_chunk))
         print(f"Accuracy on seed data after iteration {iteration}: {accuracy_seed * 100:.2f}%")
         print(f"Accuracy on unlabelled data after iteration {iteration}: {accuracy_chunk * 100:.2f}%")
-
-        unlabelled_data = remaining_data.sample(frac=1).reset_index(drop=True)
 
     return seed_data, accuracies, labeled_counts
 
@@ -334,8 +332,8 @@ def main():
 
     positive_reviews = data[data["sentiment"] == 1]["text"]
     negative_reviews = data[data["sentiment"] == -1]["text"]
-    word_cloud(positive_reviews, pos_seed_words, 'Blues')
-    word_cloud(negative_reviews, neg_seed_words, 'Reds')
+    #word_cloud(positive_reviews, pos_seed_words, 'Blues')
+    #word_cloud(negative_reviews, neg_seed_words, 'Reds')
 
 
 if __name__ == '__main__':
