@@ -9,6 +9,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk import pos_tag
+
+from collections import Counter
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import accuracy_score
@@ -128,21 +130,27 @@ def train(data, overlaps=100):
 def classify(data, diff_threshold=4):
     """
     a heuristic to classify the sentences
-    returns the classified sentences
     """
+    data = data.dropna(subset=["text"]).reset_index(drop=True)
+    data["text"] = data["text"].astype(str)
+
     num_pos = 0
     num_neg = 0
 
-    # create a target variable
     y = np.zeros(data.shape[0])
+
     for i in range(data.shape[0]):
+        if not data.at[i, "text"].strip():
+            continue
+
         pos_count = 0
         neg_count = 0
-        for word in data.loc[i, "text"].split():
+        for word in data.at[i, "text"].split():
             if word in pos_seed_words:
                 pos_count += 1
             if word in neg_seed_words:
                 neg_count += 1
+
         if pos_count - neg_count > diff_threshold:
             y[i] = 1
             num_pos += 1
@@ -150,11 +158,11 @@ def classify(data, diff_threshold=4):
             y[i] = -1
             num_neg += 1
 
-    print("total positive reviews:", num_pos)
-    print("total negative reviews:", num_neg)
+    print("Total positive reviews:", num_pos)
+    print("Total negative reviews:", num_neg)
 
-    # add the target variable to the data
     data["sentiment"] = y
+    return data
 
 
 def boot_train(data, unlabelled_data, conf_thresh=0.9, max_depth=5):
@@ -183,6 +191,7 @@ def boot_train(data, unlabelled_data, conf_thresh=0.9, max_depth=5):
         data = pd.concat([data, high_conf_samples])
         unlabelled_data = unlabelled_data.drop(high_conf_samples.index)
     else:
+        conf_thresh -= 0.05
         print("No high-confidence predictions this round.")
 
     positive_reviews = data[data["sentiment"] == 1]["text"]
@@ -195,7 +204,7 @@ def boot_train(data, unlabelled_data, conf_thresh=0.9, max_depth=5):
     print(f"Updated positive seed words: {len(pos_seed_words)}")
     print(f"Updated negative seed words: {len(neg_seed_words)}")
 
-    return data, unlabelled_data
+    return data, unlabelled_data, conf_thresh
 
 
 def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
@@ -211,11 +220,15 @@ def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
         print(f"Bootstrapping iteration {iteration}...")
 
         chunk_data = unlabelled_data.iloc[:chunksize]
-        remaining_unlabelled_data = unlabelled_data.iloc[chunksize:]
+        remaining_data = unlabelled_data.iloc[chunksize:]
 
-        seed_data, unlabelled_data = boot_train(seed_data, chunk_data, conf_thresh=conf_thresh)
-        data.update(seed_data)
-        print(seed_data, data)
+        chunk_data = classify(chunk_data)
+        unlabelled_chunk_data = chunk_data[chunk_data["sentiment"] == 0]
+        chunk_data = chunk_data[chunk_data["sentiment"] != 0]
+
+        seed_data, unlabelled_data, conf_thresh = boot_train(seed_data, unlabelled_chunk_data, conf_thresh=conf_thresh)
+        data = pd.concat([data, seed_data], ignore_index=True)
+
         accuracy_seed = calculate_accuracy(seed_data)
         accuracy_unlabelled = calculate_accuracy(unlabelled_data)
 
@@ -223,7 +236,7 @@ def bootstrap(data, initial_seed_size=1000, chunksize=1000, conf_thresh=0.9):
         print(f"Accuracy on seed data after iteration {iteration}: {accuracy_seed * 100:.2f}%")
         print(f"Accuracy on unlabelled data after iteration {iteration}: {accuracy_unlabelled * 100:.2f}%")
 
-        unlabelled_data = remaining_unlabelled_data
+        unlabelled_data = remaining_data.sample(frac=1).reset_index(drop=True)
 
     return accuracies
 
@@ -266,6 +279,8 @@ def main():
     data["sentiment"] = 0
 
     acc = bootstrap(data)
+    print(f"Final positive seed words: {len(pos_seed_words)}")
+    print(f"Final negative seed words: {len(neg_seed_words)}")
 
     accuracy_plot(acc)
 
