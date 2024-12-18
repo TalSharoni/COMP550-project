@@ -80,6 +80,7 @@ def preprocess(text):
     """
     removing stopwords, punctuation, and html tags and putting everything in lemmatized lowercase
     """
+
     # remove html tags
     text = re.sub("<[^<]+?>", " ", text)
     # remove punctuation
@@ -316,7 +317,8 @@ def main():
     outputs some example classifications
     outputs overall accruracy of model
     """
-    data = get_processed_data("aclImdb/train")
+    # data = get_processed_data("aclImdb/train")
+    data = get_processed_data("us-airline-tweets")
     data["sentiment"] = 0
 
     data, acc, labeled_counts = bootstrap(data)
@@ -332,8 +334,8 @@ def main():
 
     positive_reviews = data[data["sentiment"] == 1]["text"]
     negative_reviews = data[data["sentiment"] == -1]["text"]
-    #word_cloud(positive_reviews, pos_seed_words, 'Blues')
-    #word_cloud(negative_reviews, neg_seed_words, 'Reds')
+    word_cloud(positive_reviews, pos_seed_words, 'Blues')
+    word_cloud(negative_reviews, neg_seed_words, 'Reds')
 
 
 if __name__ == '__main__':
