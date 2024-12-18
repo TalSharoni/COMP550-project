@@ -318,7 +318,8 @@ def main():
     outputs overall accruracy of model
     """
     # data = get_processed_data("aclImdb/train")
-    data = get_processed_data("us-airline-tweets")
+    #data = get_processed_data("us-airline-tweets")
+    data = get_processed_data("ecommerce-clothing-reviews")
     data["sentiment"] = 0
 
     data, acc, labeled_counts = bootstrap(data)
