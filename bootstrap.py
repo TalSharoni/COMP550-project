@@ -49,11 +49,8 @@ neg_seed_words = [
 
 def get_processed_data(data_path):
     """
-    extracts the movie reviews from the input dataset
-    returns the reviews and their sentiments
-    (sentiments are only used for the first 1000, rest get discarded and only used for accuracy calculation)
-
-    There are 50k unsupervised reviews for training and then 25k supervised reviews for testing that we can use
+    Extracts the text data points from the input dataset.
+    Returns the text and their sentiments.
     """
     # load in the data
     data = pd.DataFrame(columns=["text", "true_label"])
@@ -130,7 +127,7 @@ def train(data, overlaps=100):
 
 def classify(data, diff_threshold=4):
     """
-    a heuristic to classify the sentences
+    A heuristic to classify the sentences.
     """
     data = data.dropna(subset=["text"]).reset_index(drop=True)
     data["text"] = data["text"].astype(str)
@@ -318,7 +315,7 @@ def main():
     outputs overall accruracy of model
     """
     # data = get_processed_data("aclImdb/train")
-    #data = get_processed_data("us-airline-tweets")
+    # data = get_processed_data("us-airline-tweets")
     data = get_processed_data("ecommerce-clothing-reviews")
     data["sentiment"] = 0
 
